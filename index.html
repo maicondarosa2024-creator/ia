@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1222">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<title>Assistente</title>
+<style>
+:root{--bg:#0f1222;--card:#1a1f38;--card2:#232948;--tx:#eef0ff;--mut:#9aa0c7;--acc:#7c8cff;--acc2:#4de0c0;--warn:#ffb86b;--bad:#ff6b8a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#app{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 8px}
+header h1{font-size:20px;margin:0}
+header small{color:var(--mut);display:block;font-size:12px}
+.ib{background:var(--card);border:0;color:var(--tx);border-radius:12px;padding:8px 12px;font-size:16px}
+main{flex:1;overflow-y:auto;padding:8px 16px 16px}
+section[hidden]{display:none}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;margin:8px 0;white-space:pre-wrap}
+.bot{background:var(--card);border-bottom-left-radius:4px}
+.me{background:var(--acc);color:#0b0e20;margin-left:auto;border-bottom-right-radius:4px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin:10px 0}
+.card h3{margin:0 0 4px;font-size:15px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--card2);color:var(--acc2);margin-bottom:6px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{background:var(--acc);color:#0b0e20;border:0;border-radius:12px;padding:10px 14px;font-weight:600;font-size:15px}
+.btn.sec{background:var(--card2);color:var(--tx)}
+.mut{color:var(--mut);font-size:14px}
+#dock{display:flex;gap:8px;align-items:center;padding:8px 16px;border-top:1px solid var(--card)}
+#txt{flex:1;background:var(--card);border:0;color:var(--tx);border-radius:14px;padding:12px 14px;font-size:16px;outline:none}
+#mic{width:56px;height:56px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--acc),var(--acc2));font-size:24px;color:#0b0e20}
+#mic.on{animation:pulse 1s infinite;background:var(--bad)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,138,.6)}100%{box-shadow:0 0 0 18px rgba(255,107,138,0)}}
+nav{display:flex;padding:4px 8px calc(6px + env(safe-area-inset-bottom));background:var(--bg)}
+nav button{flex:1;background:none;border:0;color:var(--mut);padding:8px;font-size:12px}
+nav button.act{color:var(--acc2)}
+nav button span{display:block;font-size:20px}
+.overlay{position:fixed;inset:0;background:rgba(8,10,22,.94);display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
+.overlay[hidden]{display:none}
+.panel{max-width:420px;text-align:center}
+.orb{width:110px;height:110px;border-radius:50%;margin:0 auto 18px;background:radial-gradient(circle at 30% 30%,var(--acc2),var(--acc));animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
+.panel h2{margin:0 0 8px;font-size:26px}
+.panel .btn{width:100%;margin-top:10px;padding:14px;font-size:17px}
+ul.l{list-style:none;padding:0;margin:6px 0}
+ul.l li{padding:6px 0;border-bottom:1px solid var(--card2);display:flex;justify-content:space-between;gap:8px}
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
+.ag{position:relative;background:var(--card);border:0;border-radius:16px;padding:8px 2px 6px;text-align:center;color:var(--tx);font:inherit;overflow:hidden}
+.ag svg{display:block;margin:0 auto;animation:bob 2.4s ease-in-out infinite;animation-delay:var(--d)}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.ag b{display:block;font-size:13px;margin-top:2px}
+.ag small{display:block;font-size:10.5px;color:var(--mut);line-height:1.25;min-height:27px;padding:0 3px;overflow:hidden}
+.ag .bd{position:absolute;top:5px;right:6px;background:var(--bad);color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px}
+#kbq{width:100%;background:var(--card2);border:0;color:var(--tx);border-radius:12px;padding:10px 12px;font-size:15px;margin-top:10px;outline:none}
+.ci{width:100%;background:var(--card2);border:0;color:var(--tx);border-radius:12px;padding:10px 12px;font-size:15px;outline:none;margin:4px 0 8px}
+.cl{display:block;font-size:12px;color:var(--mut);margin-top:8px}
+#stage{height:62vh;min-height:340px;border-radius:18px;overflow:hidden;background:#0f1222;touch-action:none}
+#stage canvas{display:block}
+</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div><h1>Assistente</h1><small id="sub">aprendendo com você</small></div>
+    <div><button class="ib" data-t="cfg" title="Configurações das IAs">⚙️</button> <button class="ib" id="vz" title="Resposta em voz">🔊</button></div>
+  </header>
+
+  <main>
+    <section id="tab-home">
+      <div class="row" style="justify-content:space-between;align-items:center;margin:4px 0 8px"><b>Sua equipe de agentes</b><button class="btn sec" data-t="3d" style="padding:6px 10px;font-size:13px">Ver em 3D →</button></div>
+      <div id="team" class="team"></div>
+      <div id="homeSugs"></div>
+      <div id="chat"></div>
+    </section>
+    <section id="tab-ag" hidden>
+      <div id="agCards"></div>
+      <h3 style="margin:18px 0 0">Sugestões dos agentes</h3>
+      <div id="allSugs"></div>
+      <div class="row">
+        <button class="btn sec" id="demo">Carregar exemplo de uso</button>
+        <button class="btn sec" id="wipe">Apagar meus dados</button>
+      </div>
+    </section>
+    <section id="tab-3d" hidden>
+      <div class="card" style="margin-top:0"><h3>🧊 Escritório dos agentes</h3><div class="mut">Seus agentes trabalhando em 3D. Arraste para girar e use dois dedos para aproximar. Quando você fala um comando, os dados viajam até eles. O balão vermelho indica sugestão pronta.</div></div>
+      <div id="stage"></div>
+    </section>
+    <section id="tab-kb" hidden>
+      <div class="card" style="margin-top:0"><h3>📚 Base de conhecimento</h3>
+        <div class="mut">Cada agente guarda o que pesquisa e aprende (perguntas, notas, tarefas concluídas, atividades e resumos diários). Tudo fica só no seu aparelho.</div>
+        <input id="kbq" placeholder="Buscar na base…" autocomplete="off">
+        <div class="row" id="kbf"></div>
+      </div>
+      <div id="kbList"></div>
+      <div class="card"><h3>🎙️ Conversas gravadas</h3><div id="convo"></div>
+        <div class="row"><button class="btn sec" id="recT">Gravação</button><button class="btn sec" id="exp">Exportar (.md)</button></div>
+      </div>
+    </section>
+    <section id="tab-cfg" hidden>
+      <div class="card" style="margin-top:0"><h3>⚙️ IAs para pesquisar e responder</h3>
+        <div class="mut">Cole abaixo a chave de cada serviço gratuito que quiser usar. Ao receber uma pergunta, o app tenta nesta ordem: seu servidor (Claude) → Gemini → Groq → OpenRouter → Wikipédia. Só Gemini pesquisa na web; Groq e OpenRouter respondem com o conhecimento do modelo.</div>
+        <div class="mut" style="margin-top:8px">🔒 As chaves ficam salvas só neste aparelho, em texto no navegador. Não use em aparelho compartilhado. Planos gratuitos têm limites de uso e podem usar suas perguntas para melhorar o serviço.</div>
+      </div>
+      <div class="card"><h3>🖥️ Meu servidor (Claude)</h3>
+        <div class="mut" id="srvSt">Verificando…</div>
+        <label class="cl">Token do servidor (APP_TOKEN, se você definiu um)</label>
+        <input class="ci" id="cfgTok" type="password" placeholder="deixe vazio se não usa" autocomplete="off">
+      </div>
+      <div id="cfgProv"></div>
+    </section>
+    <section id="tab-hist" hidden>
+      <div class="card"><h3>Atividade em andamento</h3><div id="running" class="mut"></div></div>
+      <div class="card"><h3>Tarefas</h3><div id="tasks"></div></div>
+      <div class="card"><h3>Atividades recentes</h3><div id="acts"></div></div>
+      <div class="card"><h3>Rotinas aprendidas</h3><div id="routines"></div></div>
+    </section>
+  </main>
+
+  <div id="dock">
+    <input id="txt" placeholder="Fale ou digite um comando…" autocomplete="off">
+    <button id="mic" title="Falar">🎤</button>
+  </div>
+  <nav>
+    <button data-t="home" class="act"><span>💬</span>Início</button>
+    <button data-t="ag"><span>🧠</span>Agentes</button>
+    <button data-t="3d"><span>🧊</span>Escritório</button>
+    <button data-t="hist"><span>📋</span>Meu dia</button>
+    <button data-t="kb"><span>📚</span>Base</button>
+  </nav>
+</div>
+
+<div class="overlay" id="welcome" hidden>
+  <div class="panel">
+    <div class="orb"></div>
+    <h2 id="wTitle">Olá!</h2>
+    <p id="wText" class="mut" style="font-size:17px"></p>
+    <div id="wExtra"></div>
+    <button class="btn" id="wYes">🎤 Sim, preciso de ajuda</button>
+    <button class="btn sec" id="wSugs">Ver sugestões dos agentes</button>
+    <button class="btn sec" id="wNo">Agora não</button>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const norm=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='assistente_v1', DAY=864e5;
+const blank=()=>({tasks:[],acts:[],log:[],routines:[],unknown:{},aliases:{},done:{},voice:true,kb:[],convo:[],topics:{},retry:[],rec:true,cfg:{token:''}});
+let S=(()=>{try{return Object.assign(blank(),JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){return blank()}})();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const fmtH=ms=>{const m=Math.round(ms/60000);return m<60?m+' min':Math.floor(m/60)+'h'+(m%60?String(m%60).padStart(2,'0'):'')};
+const hhmm=ts=>new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+/* ---------- conversa e voz ---------- */
+function speak(t){
+  if(!S.voice||!('speechSynthesis' in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';speechSynthesis.speak(u)}catch(e){}
+}
+function say(t,who='bot',rec=true){
+  const d=document.createElement('div');d.className='msg '+who;d.textContent=t;
+  $('#chat').appendChild(d);$('main').scrollTop=$('main').scrollHeight;
+  if(who==='bot')speak(t.replace(/🔗.*$/gm,''));
+  if(rec&&S.rec){S.convo.push({t:Date.now(),who,text:t});if(S.convo.length>600)S.convo.splice(0,S.convo.length-600);save()}
+}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function listen(){
+  if(!SR){say('Seu navegador não tem reconhecimento de voz. Use o campo de texto (no Chrome do Android a voz funciona).');$('#txt').focus();return}
+  const r=new SR();r.lang='pt-BR';r.interimResults=false;
+  r.onstart=()=>$('#mic').classList.add('on');
+  r.onend=()=>$('#mic').classList.remove('on');
+  r.onerror=e=>{$('#mic').classList.remove('on');say('Não consegui ouvir ('+e.error+'). Tente de novo ou digite.')};
+  r.onresult=e=>handle(e.results[0][0].transcript);
+  try{r.start()}catch(e){}
+}
+
+/* ---------- comandos ---------- */
+function parse(raw){
+  const clean=raw.trim().replace(/[.!?]+$/,'');
+  const t=norm(clean);
+  const arg=m=>clean.slice(clean.length-m.length);
+  if(S.aliases[t])return S.aliases[t];
+  let m;
+  if(m=t.match(/^(?:concluir|finalizar|conclui|feito|terminei a tarefa)\s+(.+)/))return{intent:'done',arg:arg(m[1])};
+  if(/^(terminei|parei|acabei|fim)\b/.test(t))return{intent:'stop'};
+  if((m=t.match(/^(?:adicionar |criar |nova |anotar )?tarefa:?\s+(.+)/))||(m=t.match(/^(?:preciso|tenho que|tenho de|lembrar de|lembra de|nao esquecer de)\s+(.+)/)))return{intent:'task',arg:arg(m[1])};
+  if(/(minhas tarefas|listar tarefas|lista de tarefas|o que falta|o que tenho)/.test(t))return{intent:'list'};
+  if(m=t.match(/^(?:nota|anotar|anota)\s+(.+)/))return{intent:'note',arg:arg(m[1])};
+  if(m=t.match(/^(?:estou|to|tou|comecei a|comecei|vou)\s+(.+)/))return{intent:'start',arg:arg(m[1])};
+  if(/(sugest|o que (voce )?aprendeu|como posso melhorar|melhorar)/.test(t))return{intent:'sugs'};
+  if(/(resumo|como foi meu dia)/.test(t))return{intent:'resumo'};
+  if(/^(ajuda|comandos|o que voce faz)/.test(t))return{intent:'help'};
+  return null;
+}
+function stopAct(){
+  const a=S.acts.find(x=>!x.end);if(!a)return null;
+  a.end=Date.now();
+  kbAdd('Hábitos','atividade',`${a.name} (${hhmm(a.start)})`,`Durou ${fmtH(a.end-a.start)}, começou às ${hhmm(a.start)}.`);
+  return a;
+}
+function startAct(name){
+  const prev=stopAct();
+  S.acts.push({name,start:Date.now(),end:null});
+  say((prev?`Encerrei "${prev.name}" (${fmtH(prev.end-prev.start)}). `:'')+`Registrando: ${name}. Diga "terminei" quando acabar.`);
+}
+function addTask(t){S.tasks.push({text:t,created:Date.now(),done:null})}
+function pending(){return S.tasks.filter(t=>!t.done)}
+function exec(c,raw){
+  switch(c.intent){
+    case 'task':addTask(c.arg);say(`Tarefa anotada: ${c.arg}. Você tem ${pending().length} pendente(s).`);break;
+    case 'done':{
+      const k=norm(c.arg),t=pending().find(x=>norm(x.text).includes(k));
+      if(t){t.done=Date.now();kbAdd('Foco','tarefa','Concluída: '+t.text,`Levou ${Math.max(0,Math.round((t.done-t.created)/DAY))} dia(s) para concluir.`);say(`Concluída: ${t.text}. 👏`)}else say('Não achei essa tarefa pendente.');break}
+    case 'list':{
+      const p=pending();say(p.length?'Pendentes:\n'+p.map((t,i)=>`${i+1}. ${t.text}`).join('\n'):'Nenhuma tarefa pendente. Tudo em dia!');break}
+    case 'note':S.log.push({t:Date.now(),text:'📝 '+c.arg,intent:'note'});kbAdd('Comandos','nota',c.arg,c.arg);say('Nota guardada na base de conhecimento.');break;
+    case 'start':startAct(c.arg);break;
+    case 'stop':{const a=stopAct();say(a?`Registrado: "${a.name}" durou ${fmtH(a.end-a.start)}.`:'Nenhuma atividade em andamento.');break}
+    case 'sugs':{const s=suggest();say(s.length?`Tenho ${s.length} sugestão(ões). Abrindo a aba Agentes.`:'Ainda estou aprendendo. Use alguns dias e eu começo a sugerir melhorias.');setTab('ag');break}
+    case 'resumo':{
+      const t0=new Date().setHours(0,0,0,0),as=S.acts.filter(a=>a.start>=t0);
+      const tot=as.reduce((s,a)=>s+((a.end||Date.now())-a.start),0);
+      say(`Hoje: ${as.length} atividade(s), ${fmtH(tot)} registrados, ${S.tasks.filter(t=>t.done>=t0).length} tarefa(s) concluída(s), ${pending().length} pendente(s).`);break}
+    case 'help':say('Experimente dizer:\n• "tarefa comprar café"\n• "estou estudando inglês" / "terminei"\n• "concluir café"\n• "minhas tarefas"\n• "resumo do dia"\n• "sugestões"\n\nQuanto mais você usa, mais eu aprendo seus hábitos.');break;
+  }
+}
+function handle(raw){
+  raw=raw.trim();if(!raw)return;
+  say(raw,'me');
+  T3.pulse=Date.now();
+  const c=parse(raw);
+  S.log.push({t:Date.now(),text:raw,intent:c?c.intent:(isQ(raw)?'ask':'?')});
+  if(c)exec(c,raw);
+  else if(isQ(raw))ask(raw);
+  else{
+    const k=norm(raw);const u=S.unknown[k]=S.unknown[k]||{raw,n:0};u.n++;
+    say(u.n>=2?'Isso de novo! Já aprendi que é importante. Veja a aba Agentes: posso salvar como atalho.':'Não entendi esse comando, mas guardei para aprender. Diga "ajuda" para ver o que sei fazer.');
+  }
+  save();renderAll();
+}
+
+/* ---------- base de conhecimento e pesquisa web ---------- */
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function kbAdd(agent,type,title,text,url){
+  const key=norm(type+'|'+title)+(type==='pesquisa'?'':'|'+new Date().toDateString());
+  if(S.kb.some(e=>e.key===key))return;
+  S.kb.push({id:uid(),key,agent,type,title,text,url:url||'',t:Date.now()});
+  if(S.kb.length>400)S.kb.splice(0,S.kb.length-400);
+}
+const isQ=raw=>/\?\s*$/.test(raw.trim())||/^(o que|oque|quem|qual|quais|quando|onde|como|por que|porque|quanto|quantos|quantas|me explique|explique|pesquis|busque|buscar|procure)\b/.test(norm(raw));
+const cleanQ=raw=>raw.trim().replace(/[?!.]+$/,'').replace(/^(pesquise|pesquisar|busque|buscar|procure)( sobre| por)?\s+/i,'').replace(/^(o que (é|e|são|sao)|quem (é|e|foi|são|sao)|qual (é|e)|quais (são|sao)|me explique|explique)\s+/i,'').trim();
+function pickAgent(q){
+  const n=norm(q);
+  if(/(foco|produtiv|tarefa|organiz|priorid|procrastin|planej)/.test(n))return'Foco';
+  if(/(habito|sono|dormir|pausa|saude|exercicio|treino|estudar|aprender|meditar)/.test(n))return'Hábitos';
+  if(/(rotina|horario|manha|agenda|semana)/.test(n))return'Rotina';
+  return'Comandos';
+}
+async function webSearch(q){
+  const u='https://pt.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrlimit=3&prop=extracts|info&exintro=1&explaintext=1&exsentences=3&inprop=url&format=json&origin=*';
+  const r=await fetch(u);if(!r.ok)throw new Error('http');
+  const j=await r.json();
+  const p=Object.values((j.query||{}).pages||{}).sort((a,b)=>a.index-b.index)[0];
+  return p&&p.extract?{title:p.title,text:p.extract.trim(),url:p.fullurl}:null;
+}
+// Tenta o servidor (Claude + busca web); se não houver, cai na Wikipédia.
+const SYS='Você é o pesquisador de um assistente pessoal. Responda em português do Brasil, de forma direta e curta (no máximo 5 frases). Se não souber ou não encontrar, diga isso.';
+const chatAPI=(url,extra)=>async(k,m,q)=>{
+  const r=await fetch(url,{method:'POST',headers:Object.assign({'content-type':'application/json',authorization:'Bearer '+k},extra||{}),
+    body:JSON.stringify({model:m,max_tokens:500,messages:[{role:'system',content:SYS},{role:'user',content:q}]})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((j.error&&(j.error.message||j.error))||'erro '+r.status);
+  return{text:((j.choices&&j.choices[0]&&j.choices[0].message.content)||'').trim(),sources:[]};
+};
+const PROV={
+  gemini:{nome:'Google Gemini',nota:'Gratuito, com pesquisa no Google embutida (respostas atuais, com fontes).',model:'gemini-2.5-flash',link:'https://aistudio.google.com/apikey',
+    run:async(k,m,q)=>{
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(m)+':generateContent',{method:'POST',
+        headers:{'content-type':'application/json','x-goog-api-key':k},
+        body:JSON.stringify({systemInstruction:{parts:[{text:SYS}]},contents:[{role:'user',parts:[{text:q}]}],tools:[{google_search:{}}]})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error((j.error&&j.error.message)||'erro '+r.status);
+      const c=(j.candidates||[])[0]||{};
+      const text=((c.content&&c.content.parts)||[]).map(p=>p.text||'').join('').trim();
+      const gm=c.groundingMetadata||{};
+      const sources=(gm.groundingChunks||[]).filter(g=>g.web).slice(0,3).map(g=>({title:g.web.title||'fonte',url:g.web.uri}));
+      return{text,sources};
+    }},
+  groq:{nome:'Groq',nota:'Gratuito e muito rápido. Sem pesquisa na web: responde com o que o modelo já sabe.',model:'llama-3.3-70b-versatile',link:'https://console.groq.com/keys',
+    run:chatAPI('https://api.groq.com/openai/v1/chat/completions')},
+  openrouter:{nome:'OpenRouter',nota:'Dá acesso a vários modelos gratuitos (nome termina em ":free"). Sem pesquisa na web.',model:'meta-llama/llama-3.3-70b-instruct:free',link:'https://openrouter.ai/keys',
+    run:chatAPI('https://openrouter.ai/api/v1/chat/completions',{'x-title':'Assistente'})}
+};
+const pack=(q,via,j)=>({title:q.charAt(0).toUpperCase()+q.slice(1),via,
+  text:j.text+(j.sources.length?'\n\nFontes:\n'+j.sources.map(s=>s.title+': '+s.url).join('\n'):''),url:(j.sources[0]&&j.sources[0].url)||''});
+async function smartSearch(q){
+  const cfg=S.cfg||{};
+  try{ // 1) servidor próprio com Claude
+    const h={'content-type':'application/json'};
+    if(cfg.token)h['x-app-token']=cfg.token;
+    const r=await fetch('/api/ask',{method:'POST',headers:h,body:JSON.stringify({q})});
+    if(r.ok){const j=await r.json();if(j.text)return pack(q,'Claude',{text:j.text,sources:j.sources||[]})}
+  }catch(e){}
+  // 2) provedores gratuitos configurados
+  for(const id of Object.keys(PROV)){
+    const v=cfg[id];if(!v||!v.key||v.on===false)continue;
+    try{const j=await PROV[id].run(v.key,v.model||PROV[id].model,q);if(j.text)return pack(q,PROV[id].nome,j)}catch(e){}
+  }
+  // 3) Wikipédia
+  const w=await webSearch(q);
+  return w&&Object.assign(w,{via:'Wikipédia'});
+}
+function renderCfg(){
+  const c=S.cfg;
+  $('#cfgProv').innerHTML=Object.entries(PROV).map(([id,p])=>{const v=c[id]||{};return `<div class="card"><h3>${p.nome}</h3><div class="mut">${p.nota}</div>
+    <label class="cl">Chave (token)</label><input class="ci" type="password" data-cp="${id}" data-cf="key" value="${esc(v.key||'')}" placeholder="cole sua chave aqui" autocomplete="off">
+    <label class="cl">Modelo (pode mudar se o serviço trocar os nomes)</label><input class="ci" data-cp="${id}" data-cf="model" value="${esc(v.model||p.model)}" autocomplete="off">
+    <label class="mut" style="display:block;margin:4px 0"><input type="checkbox" data-cp="${id}" data-cf="on" ${v.on!==false?'checked':''}> Usar este provedor</label>
+    <div class="row"><button class="btn sec" data-test="${id}">Testar</button><a class="btn sec" href="${p.link}" target="_blank" rel="noopener" style="text-decoration:none">Obter chave grátis</a></div>
+    <div class="mut" id="st-${id}" style="margin-top:8px"></div></div>`}).join('');
+  $('#cfgTok').value=c.token||'';
+  $('#srvSt').textContent='Verificando…';
+  fetch('/api/status').then(r=>r.json()).then(j=>{$('#srvSt').textContent=j.ai?'✅ Servidor com Claude ligado':'⚠️ Servidor encontrado, mas sem ANTHROPIC_API_KEY'}).catch(()=>{$('#srvSt').textContent='Servidor não encontrado (tudo bem se você usar só as chaves abaixo).'});
+}
+async function testProv(id){
+  const el=$('#st-'+id),p=PROV[id],q=s=>document.querySelector(`[data-cp="${id}"][data-cf="${s}"]`);
+  const key=q('key').value.trim(),model=q('model').value.trim()||p.model;
+  const v=S.cfg[id]=S.cfg[id]||{};v.key=key;v.model=model;save();
+  if(!key){el.textContent='⚠️ Cole a chave primeiro.';return}
+  el.textContent='Testando…';
+  try{const j=await p.run(key,model,'Responda apenas: funcionando.');el.textContent='✅ '+(j.text||'ok').slice(0,80)}
+  catch(e){el.textContent='❌ '+e.message}
+}
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='cfgTok'){S.cfg.token=t.value.trim();save();return}
+  if(!t.dataset.cp)return;
+  const p=S.cfg[t.dataset.cp]=S.cfg[t.dataset.cp]||{};
+  p[t.dataset.cf]=t.type==='checkbox'?t.checked:t.value.trim();save();
+});
+function kbFind(q){
+  const w=norm(q).split(/\W+/).filter(x=>x.length>3);if(!w.length)return null;
+  let best=null,bs=0;
+  S.kb.filter(e=>e.type==='pesquisa').forEach(e=>{const h=norm(e.title+' '+e.text),s=w.filter(x=>h.includes(x)).length/w.length;if(s>bs){bs=s;best=e}});
+  return bs>=.6?best:null;
+}
+async function ask(raw,again){
+  const q=cleanQ(raw)||raw,ag=pickAgent(q),a=AGENTS.find(x=>x.id===ag);
+  if(!again){const k=norm(q),t=S.topics[k]=S.topics[k]||{q,n:0};t.n++}
+  const hit=kbFind(q);
+  if(hit){hit.uses=(hit.uses||0)+1;say(`${a.nome} (Agente de ${ag}) já sabia, pela base de conhecimento:\n${hit.text}${hit.url?'\n🔗 '+hit.url:''}`);save();renderAll();return}
+  say(`${a.nome} (Agente de ${ag}) está pesquisando "${q}"…`);
+  try{
+    const r=await smartSearch(q);
+    if(r){kbAdd(ag,'pesquisa',r.title,r.text,r.url);say(`${a.nome} encontrou (${r.via||'web'}): ${r.title}\n${r.text}${r.url?'\n🔗 '+r.url:''}\nSalvei na base de conhecimento.`)}
+    else say('Não achei nada confiável sobre isso. Tente reformular a pergunta.');
+  }catch(e){
+    if(!S.retry.includes(raw))S.retry.push(raw);
+    say('Não consegui pesquisar agora (sem internet?). Guardei a pergunta e tento de novo quando a conexão voltar.');
+  }
+  save();renderAll();
+}
+async function retryQ(){const l=S.retry.splice(0);for(const q of l)await ask(q,true)}
+addEventListener('online',retryQ);
+function digest(){
+  const d0=new Date().setHours(0,0,0,0),y0=d0-DAY,k='dig|'+new Date(y0).toDateString();
+  if(S.done[k])return;S.done[k]=1;
+  const as=S.acts.filter(a=>a.start>=y0&&a.start<d0),tk=S.tasks.filter(t=>t.done>=y0&&t.done<d0),ms=S.convo.filter(m=>m.t>=y0&&m.t<d0&&m.who==='me').length;
+  if(as.length||tk.length||ms)kbAdd('Rotina','resumo','Resumo de '+new Date(y0).toLocaleDateString('pt-BR'),`${as.length} atividade(s) registrada(s), ${tk.length} tarefa(s) concluída(s), ${ms} mensagem(ns) suas.`);
+}
+
+/* ---------- agentes ---------- */
+function suggest(){
+  const out=[],now=Date.now();
+  // Agente de Rotina: atividades repetidas no mesmo horário
+  const g={};
+  S.acts.filter(a=>now-a.start<14*DAY).forEach(a=>{
+    const h=new Date(a.start).getHours(),k=norm(a.name)+'|'+h;
+    (g[k]=g[k]||{name:a.name,h,days:new Set()}).days.add(new Date(a.start).toDateString());
+  });
+  Object.values(g).forEach(x=>{
+    if(x.days.size>=3&&!S.routines.some(r=>norm(r.name)===norm(x.name)&&Math.abs(r.h-x.h)<=1))
+      out.push({id:'rot|'+norm(x.name)+x.h,agent:'Rotina',text:`Você costuma "${x.name}" por volta das ${x.h}h (${x.days.size} dias). Quer que eu te lembre todo dia?`,btn:'Criar rotina',
+        run:()=>{S.routines.push({name:x.name,h:x.h});say(`Rotina criada: "${x.name}" às ${x.h}h. Vou te avisar quando você abrir o app nesse horário.`)}});
+  });
+  // Agente de Hábitos: sessões longas sem pausa
+  S.acts.filter(a=>a.end&&now-a.start<3*DAY&&a.end-a.start>90*60000).slice(-1).forEach(a=>
+    out.push({id:'pausa|'+a.start,agent:'Hábitos',text:`"${a.name}" durou ${fmtH(a.end-a.start)} seguidos. Pausas de 10 min a cada 90 min ajudam o foco.`,btn:'Criar tarefa de pausa',
+      run:()=>{addTask('Fazer pausa de 10 min a cada 90 min');say('Adicionei o lembrete de pausa nas suas tarefas.')}}));
+  // Agente de Foco: acúmulo e tarefas paradas
+  const p=pending();
+  if(p.length>5)out.push({id:'foco|'+p.length,agent:'Foco',text:`Você tem ${p.length} tarefas pendentes. Que tal escolher só 3 para hoje?`,btn:'Ver tarefas',run:()=>exec({intent:'list'})});
+  p.filter(t=>now-t.created>3*DAY).slice(0,2).forEach(t=>
+    out.push({id:'velha|'+t.created,agent:'Foco',text:`"${t.text}" está parada há ${Math.floor((now-t.created)/DAY)} dias. Dividir em um primeiro passo pequeno?`,btn:'Criar 1º passo',
+      run:()=>{addTask('Primeiro passo: '+t.text);say('Criei um primeiro passo. Comece por ele.')}}));
+  // Agente de Comandos: frases não entendidas e repetidas
+  Object.entries(S.unknown).filter(([k,u])=>u.n>=2&&!S.aliases[k]).forEach(([k,u])=>
+    out.push({id:'alias|'+k,agent:'Comandos',text:`Você repetiu "${u.raw}" ${u.n} vezes e eu não entendi. Salvar como tarefa para eu aprender?`,btn:'Salvar atalho',
+      run:()=>{S.aliases[k]={intent:'task',arg:u.raw};say(`Aprendi: "${u.raw}" agora cria uma tarefa.`)}}));
+  // Agente de Foco: acompanha tarefas feitas no app
+  const wk=S.tasks.filter(t=>now-t.created<7*DAY),wkId=Math.floor(now/(7*DAY));
+  if(wk.length>=4){
+    const r=wk.filter(t=>t.done).length/wk.length;
+    if(r<.4)out.push({id:'taxa|'+wkId,agent:'Foco',text:`Só ${Math.round(r*100)}% das tarefas dos últimos 7 dias foram concluídas. Limitar a 3 prioridades por dia costuma ajudar.`,btn:'Criar meta de 3 por dia',
+      run:()=>{addTask('Limitar a 3 tarefas prioritárias por dia');say('Meta criada nas suas tarefas.')}});
+  }
+  const dn=S.tasks.filter(t=>t.done);
+  if(dn.length>=5){
+    const hs={};dn.forEach(t=>{const h=new Date(t.done).getHours(),p=h<12?'manhã':h<18?'tarde':'noite';hs[p]=(hs[p]||0)+1});
+    const [bp,bn]=Object.entries(hs).sort((a,b)=>b[1]-a[1])[0];
+    if(bn/dn.length>=.5)out.push({id:'periodo|'+bp+'|'+wkId,agent:'Foco',text:`Você conclui ${Math.round(bn/dn.length*100)}% das tarefas de ${bp}. Reserve esse período para o que mais importa.`,btn:'Guardar na base',
+      run:()=>{kbAdd('Foco','aprendizado','Período mais produtivo: '+bp,`${Math.round(bn/dn.length*100)}% das tarefas concluídas ocorrem de ${bp}.`);say('Guardei esse aprendizado na base de conhecimento.')}});
+  }
+  // Agente de Comandos: assuntos pesquisados repetidamente
+  Object.entries(S.topics).filter(([k,t])=>t.n>=2).forEach(([k,t])=>
+    out.push({id:'topico|'+k,agent:'Comandos',text:`Você perguntou ${t.n} vezes sobre "${t.q}". Quer uma tarefa para estudar esse assunto com calma?`,btn:'Criar tarefa',
+      run:()=>{addTask('Estudar: '+t.q);say('Tarefa de estudo criada.')}}));
+  return out.filter(s=>!(S.done[s.id]&&now-S.done[s.id]<7*DAY));
+}
+function dueRoutine(){
+  const h=new Date().getHours(),day=new Date().toDateString();
+  return S.routines.find(r=>Math.abs(r.h-h)<=1&&S.done['rt|'+norm(r.name)+day]!==1);
+}
+
+/* ---------- renderização ---------- */
+let SUGS=[];
+function sugCard(s,i){
+  return `<div class="card"><span class="tag">Agente de ${esc(s.agent)}</span><div>${esc(s.text)}</div>
+  <div class="row"><button class="btn" data-run="${i}">${esc(s.btn)}</button><button class="btn sec" data-skip="${i}">Dispensar</button></div></div>`;
+}
+function renderAll(){
+  SUGS=suggest();
+  renderTeam();if(T3.ready)upd3D();
+  $('#homeSugs').innerHTML=SUGS.slice(0,2).map((s,i)=>sugCard(s,i)).join('');
+  $('#allSugs').innerHTML=SUGS.length?SUGS.map(sugCard).join(''):'<p class="mut">Sem sugestões por enquanto. Use o app no dia a dia (registre atividades e tarefas) ou carregue o exemplo abaixo para ver os agentes em ação.</p>';
+  const nA=S.acts.length,nT=S.tasks.length;
+  $('#sub').textContent=`${nA} atividades · ${nT} tarefas · ${S.routines.length} rotinas aprendidas`;
+  const ag=[['Rotina','🔁','Descobre atividades que se repetem no mesmo horário, cria lembretes e escreve o resumo diário.',S.routines.length+' rotinas'],
+    ['Foco','🎯','Acompanha tarefas feitas, vigia acúmulo e sugere melhorias.',pending().length+' pendentes'],
+    ['Hábitos','🌿','Registra sessões e sugere pausas.',S.acts.filter(a=>a.end).length+' sessões'],
+    ['Comandos','🗣️','Aprende frases novas e pesquisa na web suas perguntas.',Object.keys(S.aliases).length+' atalhos']];
+  $('#agCards').innerHTML=ag.map(a=>`<div class="card"><h3>${a[1]} Agente de ${a[0]}</h3><div class="mut">${a[2]}</div><div style="margin-top:6px;color:var(--acc2);font-size:13px">${a[3]} · 📚 ${S.kb.filter(e=>e.agent===a[0]).length} na base</div></div>`).join('');
+  const run=S.acts.find(a=>!a.end);
+  $('#running').textContent=run?`${run.name} — desde ${hhmm(run.start)}`:'Nada em andamento';
+  $('#tasks').innerHTML=S.tasks.length?'<ul class="l">'+S.tasks.slice(-12).reverse().map(t=>`<li><span style="${t.done?'text-decoration:line-through;color:var(--mut)':''}">${esc(t.text)}</span></li>`).join('')+'</ul>':'<span class="mut">Nenhuma ainda.</span>';
+  $('#acts').innerHTML=S.acts.length?'<ul class="l">'+S.acts.slice(-10).reverse().map(a=>`<li><span>${esc(a.name)}</span><span class="mut">${hhmm(a.start)} · ${a.end?fmtH(a.end-a.start):'agora'}</span></li>`).join('')+'</ul>':'<span class="mut">Nenhuma ainda.</span>';
+  $('#routines').innerHTML=S.routines.length?'<ul class="l">'+S.routines.map(r=>`<li><span>${esc(r.name)}</span><span class="mut">~${r.h}h</span></li>`).join('')+'</ul>':'<span class="mut">Ainda aprendendo seus horários.</span>';
+  $('#vz').textContent=S.voice?'🔊':'🔇';
+  renderKB();
+}
+let KBF='Todos';
+function renderKB(){
+  const q=norm($('#kbq').value||'');
+  $('#kbf').innerHTML=['Todos',...AGENTS.map(a=>a.id)].map(n=>`<button class="btn ${KBF===n?'':'sec'}" data-kf="${n}" style="padding:6px 10px;font-size:13px">${n}</button>`).join('');
+  const l=S.kb.filter(e=>(KBF==='Todos'||e.agent===KBF)&&(!q||norm(e.title+' '+e.text).includes(q))).slice().reverse().slice(0,40);
+  $('#kbList').innerHTML=l.length?l.map(e=>`<div class="card"><span class="tag">${esc(e.agent)} · ${esc(e.type)}</span><h3>${esc(e.title)}</h3><div class="mut">${esc(e.text)}</div><div class="mut" style="font-size:12px;margin-top:6px">${new Date(e.t).toLocaleDateString('pt-BR')}${e.url?` · <a href="${esc(e.url)}" target="_blank" rel="noopener" style="color:var(--acc2)">fonte</a>`:''} · <a href="#" data-kd="${esc(e.id)}" style="color:var(--bad)">apagar</a></div></div>`).join(''):'<p class="mut">Nada aqui ainda. Faça uma pergunta (ex.: "o que é fotossíntese?") e os agentes pesquisam e guardam.</p>';
+  $('#convo').innerHTML=S.convo.length?'<ul class="l">'+S.convo.slice(-25).reverse().map(m=>`<li><span>${m.who==='me'?'🧑':'🤖'} ${esc(m.text.slice(0,140))}</span><span class="mut">${hhmm(m.t)}</span></li>`).join('')+'</ul>':'<span class="mut">Nenhuma conversa gravada.</span>';
+  $('#recT').textContent=S.rec?'⏺ Gravação: ligada':'⏸ Gravação: desligada';
+}
+function setTab(t){
+  ['home','ag','3d','hist','kb','cfg'].forEach(x=>$('#tab-'+x).hidden=x!==t);
+  if(t==='cfg')renderCfg();
+  if(t==='3d')init3D();else T3.run=false;
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('act',b.dataset.t===t));
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.run!==undefined){const s=SUGS[+b.dataset.run];s.run();S.done[s.id]=Date.now();save();renderAll();setTab('home')}
+  if(b.dataset.skip!==undefined){S.done[SUGS[+b.dataset.skip].id]=Date.now();save();renderAll()}
+  if(b.dataset.t)setTab(b.dataset.t);
+  if(b.dataset.kf){KBF=b.dataset.kf;renderKB()}
+  if(b.dataset.test)testProv(b.dataset.test);
+  if(b.dataset.ag!==undefined){const a=AGENTS[+b.dataset.ag];say(`${a.nome} (Agente de ${a.id}): ${agentInfo(a).st}.`);}
+});
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[data-kd]');if(!a)return;
+  e.preventDefault();S.kb=S.kb.filter(x=>x.id!==a.dataset.kd);save();renderKB();
+});
+$('#kbq').oninput=renderKB;
+$('#recT').onclick=()=>{S.rec=!S.rec;save();renderKB()};
+$('#exp').onclick=()=>{
+  const md='# Base de conhecimento\n\n'+S.kb.map(e=>`## ${e.title}\n_${e.agent} · ${e.type} · ${new Date(e.t).toLocaleString('pt-BR')}_\n\n${e.text}\n${e.url?'\n'+e.url+'\n':''}`).join('\n')+'\n# Conversas\n\n'+S.convo.map(m=>`- [${new Date(m.t).toLocaleString('pt-BR')}] **${m.who==='me'?'Você':'Assistente'}**: ${m.text.replace(/\n/g,' ')}`).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'}));a.download='base-conhecimento.md';a.click();
+};
+$('#mic').onclick=listen;
+$('#txt').addEventListener('keydown',e=>{if(e.key==='Enter'){handle(e.target.value);e.target.value=''}});
+$('#vz').onclick=()=>{S.voice=!S.voice;if(!S.voice)try{speechSynthesis.cancel()}catch(e){}save();renderAll()};
+$('#wNo').onclick=()=>$('#welcome').hidden=true;
+$('#wYes').onclick=()=>{$('#welcome').hidden=true;setTab('home');say('Estou ouvindo. O que você precisa?');listen()};
+$('#wSugs').onclick=()=>{$('#welcome').hidden=true;setTab('ag')};
+$('#wipe').onclick=()=>{if(confirm('Apagar tudo que o app aprendeu?')){const cfg=S.cfg;S=blank();S.cfg=cfg;save();$('#chat').innerHTML='';renderAll()}};
+$('#demo').onclick=()=>{
+  const now=Date.now();
+  for(let d=1;d<=5;d++){
+    const s1=new Date(now-d*DAY).setHours(8,5,0,0);S.acts.push({name:'estudando inglês',start:s1,end:s1+45*60000});
+    const s2=new Date(now-d*DAY).setHours(18,10,0,0);S.acts.push({name:'treinando',start:s2,end:s2+50*60000});
+  }
+  const s3=new Date(now-DAY).setHours(13,0,0,0);S.acts.push({name:'trabalhando no relatório',start:s3,end:s3+130*60000});
+  S.tasks.push({text:'renovar documento do carro',created:now-6*DAY,done:null});
+  S.unknown[norm('ligar pro contador')]={raw:'ligar pro contador',n:2};
+  save();renderAll();say('Carreguei um exemplo de uso. Veja as sugestões que os agentes geraram.');
+};
+
+/* ---------- abertura: "precisa de ajuda?" ---------- */
+function openWelcome(){
+  const h=new Date().getHours(),sal=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  const r=dueRoutine(),n=SUGS.length,p=pending().length;
+  $('#wTitle').textContent=sal+'!';
+  let txt='Você precisa de ajuda com alguma coisa?';
+  if(r)txt=`Normalmente por volta das ${r.h}h você faz "${r.name}". Quer que eu comece a registrar? Ou precisa de ajuda com outra coisa?`;
+  else if(n)txt=`Precisa de ajuda? Aprendi algumas coisas sobre sua rotina e tenho ${n} sugestão(ões) para você.`;
+  else if(p)txt=`Precisa de ajuda? Você tem ${p} tarefa(s) pendente(s).`;
+  $('#wText').textContent=txt;
+  $('#wExtra').innerHTML=r?'<button class="btn" id="wRt">▶ Começar "'+esc(r.name)+'"</button>':'';
+  const rb=$('#wRt');if(rb)rb.onclick=()=>{S.done['rt|'+norm(r.name)+new Date().toDateString()]=1;$('#welcome').hidden=true;startAct(r.name);save();renderAll()};
+  $('#welcome').hidden=false;
+  speak(sal+'! '+txt);
+}
+/* ---------- equipe de agentes (bonecos) ---------- */
+const T3={ready:false,run:false,pulse:0,touch:0,lastUp:0,agents:[]};
+const AGENTS=[
+  {id:'Rotina',nome:'Rita',cor:'#7c8cff',hair:'#3b2a1f',skin:'#f1c9a5'},
+  {id:'Foco',nome:'Fábio',cor:'#4de0c0',hair:'#1c1c1c',skin:'#c68b5d'},
+  {id:'Hábitos',nome:'Helena',cor:'#ffb86b',hair:'#a0522d',skin:'#f6d5b8'},
+  {id:'Comandos',nome:'Caio',cor:'#ff6b8a',hair:'#d9b44a',skin:'#8d5a3b'}
+];
+function agentInfo(a){
+  const sg=SUGS.filter(s=>s.agent===a.id).length,run=S.acts.find(x=>!x.end),p=pending().length;
+  let st;
+  if(a.id==='Rotina')st=run?`Observando "${run.name}"`:`${S.routines.length} rotina(s) aprendida(s)`;
+  else if(a.id==='Foco')st=p?`${p} tarefa(s) pendente(s)`:'Tudo em dia';
+  else if(a.id==='Hábitos')st=run?`Cronometrando "${run.name}" há ${fmtH(Date.now()-run.start)}`:'Atento às suas pausas';
+  else{const nu=Object.keys(S.unknown).filter(k=>!S.aliases[k]).length;st=`${Object.keys(S.aliases).length} atalho(s) · ${nu} frase(s) nova(s)`}
+  if(sg)st=`💡 ${sg} sugestão(ões) para você`;
+  return{st,sg};
+}
+function avatar(a){
+  return `<svg viewBox="0 0 64 80" width="60" height="75"><ellipse cx="32" cy="76" rx="18" ry="3" fill="#0006"/><rect x="14" y="44" width="36" height="32" rx="12" fill="${a.cor}"/><rect x="7" y="46" width="11" height="24" rx="5.5" fill="${a.cor}"/><rect x="46" y="46" width="11" height="24" rx="5.5" fill="${a.cor}"/><circle cx="12.5" cy="71" r="5" fill="${a.skin}"/><circle cx="51.5" cy="71" r="5" fill="${a.skin}"/><circle cx="32" cy="28" r="17" fill="${a.skin}"/><path d="M15 27a17 17 0 0 1 34 0c-6-8-12-9-17-9s-11 1-17 9z" fill="${a.hair}"/><circle cx="26" cy="30" r="2" fill="#111"/><circle cx="38" cy="30" r="2" fill="#111"/><path d="M27 37q5 4 10 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+}
+function renderTeam(){
+  $('#team').innerHTML=AGENTS.map((a,i)=>{
+    const inf=agentInfo(a);
+    return `<button class="ag" data-ag="${i}" style="--d:${i*.35}s">${inf.sg?`<span class="bd">${inf.sg}</span>`:''}${avatar(a)}<b>${a.nome}</b><small>${esc(inf.st)}</small></button>`;
+  }).join('');
+}
+
+/* ---------- escritório 3D ---------- */
+function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function drawLabel(o,inf){
+  const c=o.cv,x=c.getContext('2d'),w=c.width,h=c.height;
+  x.clearRect(0,0,w,h);
+  x.fillStyle='rgba(15,18,34,.9)';rr(x,4,4,w-8,h-8,28);x.fill();
+  x.lineWidth=6;x.strokeStyle=o.a.cor;rr(x,4,4,w-8,h-8,28);x.stroke();
+  x.textBaseline='top';x.fillStyle=o.a.cor;x.font='bold 44px system-ui,sans-serif';
+  x.fillText(o.a.nome+' · '+o.a.id,26,20);
+  x.fillStyle='#eef0ff';x.font='32px system-ui,sans-serif';
+  const words=inf.st.split(' ');let line='',y=80,n=0;
+  for(const wd of words){
+    const t=line?line+' '+wd:wd;
+    if(x.measureText(t).width>w-52&&line){x.fillText(line,26,y);y+=40;n++;line=wd;if(n>=2)break}else line=t;
+  }
+  if(n<2)x.fillText(line,26,y);
+  if(inf.sg){x.fillStyle='#ff6b8a';x.beginPath();x.arc(w-40,42,18,0,7);x.fill()}
+  o.tex.needsUpdate=true;
+}
+function upd3D(){
+  T3.agents.forEach(o=>{
+    const inf=agentInfo(o.a),key=inf.st+'|'+inf.sg;
+    o.sg=inf.sg;
+    if(o.key!==key){o.key=key;drawLabel(o,inf)}
+  });
+}
+function init3D(){
+  if(T3.ready){T3.run=true;T3.fit();return}
+  const box=$('#stage');
+  if(!window.THREE){box.innerHTML='<p class="mut" style="padding:20px">Não consegui carregar o motor 3D (precisa de internet). Recarregue a página.</p>';return}
+  let renderer;
+  try{renderer=new THREE.WebGLRenderer({antialias:true})}
+  catch(e){box.innerHTML='<p class="mut" style="padding:20px">Seu aparelho não suporta 3D (WebGL).</p>';return}
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  box.appendChild(renderer.domElement);
+  const dom=renderer.domElement;dom.style.touchAction='none';
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x0f1222);
+  scene.fog=new THREE.Fog(0x0f1222,16,36);
+  const cam=new THREE.PerspectiveCamera(50,1,.1,100);
+  scene.add(new THREE.HemisphereLight(0xbfc8ff,0x1a1f38,.95));
+  const sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(5,10,6);scene.add(sun);
+  const M=c=>new THREE.MeshLambertMaterial({color:new THREE.Color(c)});
+  const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,20),M('#1a1f38'));floor.rotation.x=-Math.PI/2;scene.add(floor);
+  const grid=new THREE.GridHelper(20,20,0x2f376b,0x232948);grid.position.y=.01;scene.add(grid);
+
+  function makeAgent(a,i){
+    const g=new THREE.Group(),sk=M(a.skin),hr=M(a.hair),sh=M(a.cor),pn=M('#2b3260'),dk=M('#3a4170'),ch=M('#161a30');
+    const add=(geo,mat,x,y,z,p)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);(p||g).add(m);return m};
+    add(B(.8,.1,.8),ch,0,.74,.1);add(B(.8,.9,.08),ch,0,1.2,-.35);
+    add(B(.7,.85,.4),sh,0,1.3,0);
+    [-1,1].forEach(s=>{add(B(.28,.2,.62),pn,s*.18,.86,.3);add(B(.26,.8,.26),pn,s*.18,.42,.62);add(B(.3,.12,.42),M('#111'),s*.18,.06,.72)});
+    const headG=new THREE.Group();headG.position.set(0,1.98,0);g.add(headG);
+    add(new THREE.SphereGeometry(.28,20,16),sk,0,0,0,headG);
+    const hm=add(new THREE.SphereGeometry(.3,20,12,0,Math.PI*2,0,Math.PI/1.9),hr,0,.02,-.03,headG);
+    [-.1,.1].forEach(x=>add(new THREE.SphereGeometry(.035,8,8),M('#111'),x,.02,.26,headG));
+    const arm=s=>{const p=new THREE.Group();p.position.set(s*.46,1.6,0);p.rotation.x=-1.1;add(B(.2,.72,.2),sh,0,-.36,0,p);add(new THREE.SphereGeometry(.11,10,10),sk,0,-.76,0,p);g.add(p);return p};
+    const armL=arm(-1),armR=arm(1);
+    add(B(2.2,.08,1.1),dk,0,1.2,1.15);
+    [-1,1].forEach(sx=>[.7,1.6].forEach(z=>add(B(.08,1.16,.08),dk,sx*1.05,.6,z)));
+    add(B(.7,.03,.25),M('#0b0e20'),0,1.25,.85);
+    add(B(1.1,.7,.06),M('#0b0e20'),0,1.95,1.6);add(B(.1,.25,.1),dk,0,1.38,1.6);
+    const scr=new THREE.Mesh(new THREE.PlaneGeometry(.98,.58),new THREE.MeshBasicMaterial({color:new THREE.Color(a.cor),transparent:true,opacity:.85}));
+    scr.position.set(0,1.95,1.565);scr.rotation.y=Math.PI;g.add(scr);
+    const cv=document.createElement('canvas');cv.width=512;cv.height=180;
+    const tex=new THREE.CanvasTexture(cv);
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+    spr.scale.set(3.4,1.2,1);spr.position.set(0,3.3,0);g.add(spr);
+    const ang=Math.PI/4+i*Math.PI/2,R=4.2;
+    g.position.set(Math.cos(ang)*R,0,Math.sin(ang)*R);g.lookAt(0,0,0);
+    scene.add(g);
+    // feixe de dados até o usuário
+    const p0=new THREE.Vector3(Math.cos(ang)*(R-1.6),2.1,Math.sin(ang)*(R-1.6));
+    const p1=new THREE.Vector3(0,1.3,0);
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p0,p1]),new THREE.LineBasicMaterial({color:new THREE.Color(a.cor),transparent:true,opacity:.35})));
+    const pk=new THREE.Mesh(new THREE.SphereGeometry(.1,10,10),new THREE.MeshBasicMaterial({color:new THREE.Color(a.cor)}));
+    scene.add(pk);
+    return{a,i,g,armL,armR,headG,scr,cv,tex,pk,p0,p1,pt:i*.25,sg:0,key:''};
+  }
+  T3.agents=AGENTS.map(makeAgent);
+
+  // usuário no centro
+  const orb=new THREE.Mesh(new THREE.SphereGeometry(.45,24,18),new THREE.MeshBasicMaterial({color:0xffffff}));orb.position.y=1.3;scene.add(orb);
+  const halo=new THREE.Mesh(new THREE.SphereGeometry(.75,24,18),new THREE.MeshBasicMaterial({color:0x7c8cff,transparent:true,opacity:.25}));halo.position.y=1.3;scene.add(halo);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.05,12,48),new THREE.MeshBasicMaterial({color:0x4de0c0}));ring.rotation.x=Math.PI/2;ring.position.y=.06;scene.add(ring);
+  const lc=document.createElement('canvas');lc.width=256;lc.height=96;
+  const lx=lc.getContext('2d');lx.fillStyle='rgba(15,18,34,.9)';rr(lx,4,4,248,88,24);lx.fill();lx.strokeStyle='#4de0c0';lx.lineWidth=5;rr(lx,4,4,248,88,24);lx.stroke();
+  lx.fillStyle='#eef0ff';lx.font='bold 46px system-ui,sans-serif';lx.textAlign='center';lx.textBaseline='middle';lx.fillText('Você',128,50);
+  const ls=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(lc),transparent:true,depthTest:false}));
+  ls.scale.set(1.8,.68,1);ls.position.set(0,2.3,0);scene.add(ls);
+
+  // câmera orbital (arrastar gira, pinça aproxima)
+  let az=.6,pol=1.0,rad=13;const pts=new Map(),tgt=new THREE.Vector3(0,1.2,0);
+  const dist=()=>{const v=[...pts.values()];return Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)};
+  let pinch=0;
+  dom.addEventListener('pointerdown',e=>{try{dom.setPointerCapture(e.pointerId)}catch(_){}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});T3.touch=Date.now();if(pts.size===2)pinch=dist()});
+  dom.addEventListener('pointermove',e=>{
+    const p=pts.get(e.pointerId);if(!p)return;
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;T3.touch=Date.now();
+    if(pts.size===1){az-=dx*.008;pol=Math.min(1.45,Math.max(.35,pol-dy*.006))}
+    else if(pts.size===2){const d=dist();if(pinch)rad=Math.min(22,Math.max(6,rad*pinch/d));pinch=d}
+  });
+  const up=e=>{pts.delete(e.pointerId);pinch=0};
+  dom.addEventListener('pointerup',up);dom.addEventListener('pointercancel',up);
+  dom.addEventListener('wheel',e=>{e.preventDefault();rad=Math.min(22,Math.max(6,rad+e.deltaY*.01));T3.touch=Date.now()},{passive:false});
+
+  function fit(){const w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;renderer.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix()}
+  T3.fit=fit;
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(box);else addEventListener('resize',fit);
+
+  const clock=new THREE.Clock();
+  function loop(){
+    requestAnimationFrame(loop);
+    if(!T3.run)return;
+    const dt=Math.min(clock.getDelta(),.1),t=performance.now();
+    const pulse=Math.max(0,1-(Date.now()-T3.pulse)/3000);
+    if(t-T3.lastUp>1000){T3.lastUp=t;upd3D()}
+    if(Date.now()-T3.touch>4000)az+=dt*.15;
+    cam.position.set(tgt.x+rad*Math.sin(pol)*Math.sin(az),tgt.y+rad*Math.cos(pol),tgt.z+rad*Math.sin(pol)*Math.cos(az));
+    cam.lookAt(tgt);
+    T3.agents.forEach(o=>{
+      const b=.6+(o.sg?.5:0)+.6*pulse;
+      o.armL.rotation.x=-1.1+Math.sin(t*.014+o.i)*.11*b;
+      o.armR.rotation.x=-1.1+Math.sin(t*.017+o.i*2)*.11*b;
+      o.headG.rotation.y=Math.sin(t*.0012+o.i*1.7)*.3;
+      o.headG.rotation.x=Math.sin(t*.002+o.i)*.06;
+      o.scr.material.opacity=.75+.2*Math.sin(t*.006+o.i);
+      o.pt=(o.pt+dt*(.18+(o.sg?.35:0)+.8*pulse))%1;
+      o.pk.position.lerpVectors(o.p0,o.p1,o.pt);
+    });
+    const s=1+.08*Math.sin(t*.004)+.25*pulse;
+    orb.scale.setScalar(s);halo.scale.setScalar(1+.1*Math.sin(t*.003)+.5*pulse);
+    orb.position.y=halo.position.y=1.3+.08*Math.sin(t*.002);
+    ring.rotation.z+=dt*.6;
+    renderer.render(scene,cam);
+  }
+  T3.ready=true;T3.run=true;
+  fit();upd3D();loop();
+}
+
+digest();save();
+renderAll();
+say('Oi! Eu aprendo com o que você faz no dia a dia. Toque no microfone e diga, por exemplo: "estou estudando inglês" ou "tarefa comprar café". Pergunte qualquer coisa (ex.: "o que é fotossíntese?") e os agentes pesquisam na web e guardam na base de conhecimento. Diga "ajuda" para ver tudo.','bot',false);
+openWelcome();
+if(navigator.onLine)retryQ();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
